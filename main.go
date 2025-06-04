@@ -146,6 +146,8 @@ func parseMainTF(path string, evalCtx *hcl.EvalContext) (map[string]TFResource, 
 					val, diag := attr.Expr.Value(evalCtx)
 					if diag.HasErrors() {
 						resource.Config[attrName] = string(attr.Expr.Range().SliceBytes(src)) // fallback
+					} else if val.Type() == cty.String {
+						resource.Config[attrName] = val.AsString()
 					} else {
 						resource.Config[attrName] = val.GoString() // evaluated value
 					}
@@ -280,6 +282,9 @@ func diffVariables(oldVars, newVars map[string]TFVariable) {
 
 func diffResources(oldResources, newResources map[string]TFResource) {
 	for key, oldRes := range oldResources {
+		if oldRes.Type == "helm_release" {
+			continue // Skip helm_release resources, handled in diffHelmReleases
+		}
 		newRes, exists := newResources[key]
 		if !exists {
 			fmt.Printf("  ➖ Resource removed: %s\n", key)
@@ -312,7 +317,10 @@ func diffResources(oldResources, newResources map[string]TFResource) {
 		}
 	}
 
-	for key := range newResources {
+	for key, newRes := range newResources {
+		if newRes.Type == "helm_release" {
+			continue // Skip helm_release resources, handled in diffHelmReleases
+		}
 		if _, exists := oldResources[key]; !exists {
 			fmt.Printf("  ➕ Resource added: %s\n", key)
 		}
@@ -380,6 +388,43 @@ func diffHelmReleases(oldReleases, newReleases []HelmRelease) {
 			}
 			if oldRelease.Namespace != newRelease.Namespace {
 				fmt.Printf("    Namespace: %s → %s\n", oldRelease.Namespace, newRelease.Namespace)
+			}
+			// Print changes in Sets
+			for key, oldVal := range oldRelease.Sets {
+				newVal, exists := newRelease.Sets[key]
+				if !exists {
+					fmt.Printf("    ➖ Set removed: %s (was: %s)\n", key, oldVal)
+				} else if oldVal != newVal {
+					fmt.Printf("    🔄 Set changed: %s, Value: %s → %s\n", key, oldVal, newVal)
+				}
+			}
+			for key, newVal := range newRelease.Sets {
+				if _, exists := oldRelease.Sets[key]; !exists {
+					fmt.Printf("    ➕ Set added: %s (value: %s)\n", key, newVal)
+				}
+			}
+			// Print changes in Values
+			maxLen := len(oldRelease.Values)
+			if len(newRelease.Values) > maxLen {
+				maxLen = len(newRelease.Values)
+			}
+			for i := 0; i < maxLen; i++ {
+				var oldVal, newVal string
+				if i < len(oldRelease.Values) {
+					oldVal = oldRelease.Values[i]
+				}
+				if i < len(newRelease.Values) {
+					newVal = newRelease.Values[i]
+				}
+				if oldVal != newVal {
+					if oldVal == "" {
+						fmt.Printf("    ➕ Value added: %s\n", newVal)
+					} else if newVal == "" {
+						fmt.Printf("    ➖ Value removed: %s\n", oldVal)
+					} else {
+						fmt.Printf("    🔄 Value changed: %s → %s\n", oldVal, newVal)
+					}
+				}
 			}
 		}
 	}
