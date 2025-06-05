@@ -12,6 +12,15 @@ on:
         description: 'Path to new version directory (e.g., ./test-a/mock-v2.0/)'
         required: false
         default: './test-a/mock-v2.0/'
+  push:
+    branches:
+      - main
+    paths:
+      - 'test-a/mock-v1.0/**'
+      - 'test-a/mock-v2.0/**'
+      - 'main.go'
+      - 'go.mod'
+      - 'go.sum'
 
 jobs:
   terraform-diff:
