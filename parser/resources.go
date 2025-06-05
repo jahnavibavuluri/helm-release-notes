@@ -3,11 +3,14 @@ package parser
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
+
+	"tf-diff/fetch"
 )
 
 type TFResource struct {
@@ -17,14 +20,20 @@ type TFResource struct {
 	SourceLine int
 }
 
-func ParseMainTF(path string, evalCtx *hcl.EvalContext) (map[string]TFResource, []HelmRelease, error) {
-	src, err := os.ReadFile(path)
+func ParseMainTF(content []byte, path string, evalCtx *hcl.EvalContext) (map[string]TFResource, []HelmRelease, error) {
+	tmpFile, err := fetch.CreateTempFile(content, path)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read file %s: %v", path, err)
+		return nil, nil, err
 	}
+	defer os.RemoveAll(filepath.Dir(tmpFile))
+
+	// src, err := os.ReadFile(path)
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf("failed to read file %s: %v", path, err)
+	// }
 
 	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCLFile(path)
+	file, diags := parser.ParseHCLFile(tmpFile)
 
 	if diags.HasErrors() {
 		return nil, nil, fmt.Errorf("failed to parse file %s: %v", path, diags)
@@ -57,7 +66,7 @@ func ParseMainTF(path string, evalCtx *hcl.EvalContext) (map[string]TFResource, 
 					// Evaluate the expression in the context of evalCtx
 					val, diag := attr.Expr.Value(evalCtx)
 					if diag.HasErrors() {
-						resource.Config[attrName] = string(attr.Expr.Range().SliceBytes(src)) // fallback
+						resource.Config[attrName] = string(attr.Expr.Range().SliceBytes(content)) // fallback
 					} else if val.Type() == cty.String {
 						resource.Config[attrName] = val.AsString()
 					} else {
@@ -71,7 +80,7 @@ func ParseMainTF(path string, evalCtx *hcl.EvalContext) (map[string]TFResource, 
 
 			// Special handling for helm_release resources
 			if resourceType == "helm_release" {
-				helmRelease := ParseHelmRelease(resourceName, block, src, evalCtx)
+				helmRelease := ParseHelmRelease(resourceName, block, content, evalCtx)
 				helmReleases = append(helmReleases, helmRelease)
 			}
 		}

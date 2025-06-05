@@ -3,9 +3,12 @@ package parser
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
+	"tf-diff/fetch"
 )
 
 type TFVariable struct {
@@ -14,16 +17,23 @@ type TFVariable struct {
 	Type    string
 }
 
-func ParseVariablesTF(path string) (map[string]TFVariable, error) {
+func ParseVariablesTF(content []byte, path string) (map[string]TFVariable, error) {
 
-	// Read the file content, later used for extracting default and type values
-	src, err := os.ReadFile(path)
+	// Create temp file to parse the HCL content
+	tmpFile, err := fetch.CreateTempFile(content, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %v", path, err)
+		return nil, err
 	}
+	defer os.RemoveAll(filepath.Dir(tmpFile))
+
+	// // Read the file content, later used for extracting default and type values
+	// src, err := os.ReadFile(path)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to read file %s: %v", path, err)
+	// }
 
 	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCLFile(path)
+	file, diags := parser.ParseHCLFile(tmpFile)
 
 	if diags.HasErrors() {
 		return nil, fmt.Errorf("failed to parse file %s: %v", path, diags)
@@ -45,11 +55,11 @@ func ParseVariablesTF(path string) (map[string]TFVariable, error) {
 				switch attr.Name {
 				case "default":
 					if attr.Expr != nil {
-						variable.Default = string(attr.Expr.Range().SliceBytes(src))
+						variable.Default = string(attr.Expr.Range().SliceBytes(content))
 					}
 				case "type":
 					if attr.Expr != nil {
-						variable.Type = string(attr.Expr.Range().SliceBytes(src))
+						variable.Type = string(attr.Expr.Range().SliceBytes(content))
 					}
 				}
 			}

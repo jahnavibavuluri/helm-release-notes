@@ -3,21 +3,30 @@ package parser
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
+
+	"tf-diff/fetch"
 )
 
-func ParseLocalsTF(path string, evalCtx *hcl.EvalContext) (map[string]cty.Value, error) {
-	src, err := os.ReadFile(path)
+func ParseLocalsTF(content []byte, path string, evalCtx *hcl.EvalContext) (map[string]cty.Value, error) {
+	tmpFile, err := fetch.CreateTempFile(content, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %v", path, err)
+		return nil, err
 	}
+	defer os.RemoveAll(filepath.Dir(tmpFile))
+
+	// src, err := os.ReadFile(path)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to read file %s: %v", path, err)
+	// }
 
 	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCLFile(path)
+	file, diags := parser.ParseHCLFile(tmpFile)
 	if diags.HasErrors() {
 		return nil, fmt.Errorf("failed to parse file %s: %v", path, diags)
 	}
@@ -34,7 +43,7 @@ func ParseLocalsTF(path string, evalCtx *hcl.EvalContext) (map[string]cty.Value,
 				if attr.Expr != nil {
 					val, diag := attr.Expr.Value(evalCtx)
 					if diag.HasErrors() {
-						locals[name] = cty.StringVal(string(attr.Expr.Range().SliceBytes(src)))
+						locals[name] = cty.StringVal(string(attr.Expr.Range().SliceBytes(content)))
 					} else {
 						locals[name] = val
 					}
