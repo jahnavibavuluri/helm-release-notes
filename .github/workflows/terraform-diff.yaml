@@ -3,21 +3,10 @@ name: Terraform Diff Analysis
 # Allow manual triggering of the workflow
 on:
   workflow_dispatch:
-    inputs:
-      old_version_path:
-        description: 'Path to old version directory (e.g., ./test-a/mock-v1.0/)'
-        required: false
-        default: './test-a/mock-v1.0/'
-      new_version_path:
-        description: 'Path to new version directory (e.g., ./test-a/mock-v2.0/)'
-        required: false
-        default: './test-a/mock-v2.0/'
   push:
     branches:
       - main
     paths:
-      - 'test-a/mock-v1.0/**'
-      - 'test-a/mock-v2.0/**'
       - 'main.go'
       - 'go.mod'
       - 'go.sum'
@@ -46,52 +35,19 @@ jobs:
           ${{ runner.os }}-go-
           
     - name: Download Go dependencies
-      run: go mod tidy
-      
-    - name: Verify test directories exist
-      run: |
-        echo "Checking if directories exist..."
-        OLD_PATH="${{ github.event.inputs.old_version_path || './test-a/mock-v1.0/' }}"
-        NEW_PATH="${{ github.event.inputs.new_version_path || './test-a/mock-v2.0/' }}"
-        
-        if [ ! -d "$OLD_PATH" ]; then
-          echo "❌ Old version directory not found: $OLD_PATH"
-          exit 1
-        fi
-        
-        if [ ! -d "$NEW_PATH" ]; then
-          echo "❌ New version directory not found: $NEW_PATH"
-          exit 1
-        fi
-        
-        echo "✅ Both directories found"
-        echo "Old version path: $OLD_PATH"
-        echo "New version path: $NEW_PATH"
-        
-        # List contents of directories
-        echo ""
-        echo "Contents of $OLD_PATH:"
-        ls -la "$OLD_PATH" || echo "Could not list contents"
-        
-        echo ""
-        echo "Contents of $NEW_PATH:"
-        ls -la "$NEW_PATH" || echo "Could not list contents"
-        
+      run: go mod tidy    
     - name: Run Terraform Diff Analysis
       run: |
         echo "🚀 Starting Terraform diff analysis..."
         echo "=============================================="
         
-        OLD_PATH="${{ github.event.inputs.old_version_path || './test-a/mock-v1.0/' }}"
-        NEW_PATH="${{ github.event.inputs.new_version_path || './test-a/mock-v2.0/' }}"
-        
         echo "Comparing:"
-        echo "  Old: $OLD_PATH"
-        echo "  New: $NEW_PATH"
+        echo "  Old: test-terraform-repo v1.0.0"
+        echo "  New: test-terraform-repo v1.1.0"
         echo ""
         
         # Run the Go program with the specified paths
-        go run main.go "$OLD_PATH" "$NEW_PATH"
+        go run main.go jahnavibavuluri test-terraform-repo v1.0.0 v1.1.0
         
     - name: Summary
       if: always()
