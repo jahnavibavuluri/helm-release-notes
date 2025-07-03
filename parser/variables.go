@@ -27,9 +27,13 @@ func ParseVariablesTF(content []byte, path string) (map[string]TFVariable, error
 	defer os.RemoveAll(filepath.Dir(tmpFile))
 
 	// // Read the file content, later used for extracting default and type values
-	// src, err := os.ReadFile(path)
+	// fileContent, err := os.ReadFile(tmpFile)
 	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to read file %s: %v", path, err)
+	// 	fmt.Printf("Error reading temp file: %v\n", err)
+	// } else {
+	// 	fmt.Printf("=== Content of temp file %s ===\n", tmpFile)
+	// 	fmt.Printf("%s\n", string(fileContent))
+	// 	fmt.Printf("=== End content ===\n")
 	// }
 
 	parser := hclparse.NewParser()

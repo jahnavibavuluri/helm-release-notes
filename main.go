@@ -29,19 +29,21 @@ func main() {
 
 	fmt.Printf("Comparing %s/%s: %s → %s\n\n", owner, repo, oldRef, newRef)
 
+	config := fetch.NewEnterpriseGitHubConfig("https://github.mathworks.com", os.Getenv("GITHUB_TOKEN"))
+
 	// Download variables.tf files
-	oldVariablesURL := fetch.BuildGitHubRawURL(owner, repo, oldRef, "variables.tf")
-	newVariablesURL := fetch.BuildGitHubRawURL(owner, repo, newRef, "variables.tf")
+	oldVariablesURL := config.BuildGitHubRawURL(owner, repo, oldRef, "variables.tf")
+	newVariablesURL := config.BuildGitHubRawURL(owner, repo, newRef, "variables.tf")
 
 	fmt.Printf("Downloading %s...\n", oldVariablesURL)
-	oldVariablesContent, err := fetch.DownloadGitHubFile(oldVariablesURL)
+	oldVariablesContent, err := config.DownloadGitHubFile(oldVariablesURL)
 	if err != nil {
 		fmt.Printf("Error downloading old variables.tf: %v\n", err)
 		return
 	}
 
 	fmt.Printf("Downloading %s...\n", newVariablesURL)
-	newVariablesContent, err := fetch.DownloadGitHubFile(newVariablesURL)
+	newVariablesContent, err := config.DownloadGitHubFile(newVariablesURL)
 	if err != nil {
 		fmt.Printf("Error downloading new variables.tf: %v\n", err)
 		return
@@ -61,18 +63,18 @@ func main() {
 	}
 
 	//Download main.tf files
-	oldMainURL := fetch.BuildGitHubRawURL(owner, repo, oldRef, "main.tf")
-	newMainURL := fetch.BuildGitHubRawURL(owner, repo, newRef, "main.tf")
+	oldMainURL := config.BuildGitHubRawURL(owner, repo, oldRef, "main.tf")
+	newMainURL := config.BuildGitHubRawURL(owner, repo, newRef, "main.tf")
 
 	fmt.Printf("\nDownloading %s...\n", oldMainURL)
-	oldMainContent, err := fetch.DownloadGitHubFile(oldMainURL)
+	oldMainContent, err := config.DownloadGitHubFile(oldMainURL)
 	if err != nil {
 		fmt.Printf("Error downloading old main.tf: %v\n", err)
 		return
 	}
 
 	fmt.Printf("Downloading %s...\n", newMainURL)
-	newMainContent, err := fetch.DownloadGitHubFile(newMainURL)
+	newMainContent, err := config.DownloadGitHubFile(newMainURL)
 	if err != nil {
 		fmt.Printf("Error downloading new main.tf: %v\n", err)
 		return

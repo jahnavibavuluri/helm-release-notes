@@ -6,14 +6,41 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-func BuildGitHubRawURL(owner, repo, ref, path string) string {
-	return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, path)
+type Config struct {
+	BaseURL string
+	Token   string
 }
 
-func DownloadGitHubFile(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+func (c *Config) BuildGitHubRawURL(owner, repo, ref, path string) string {
+	if strings.Contains(c.BaseURL, "github.com") {
+		// Public GitHub
+		return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, path)
+	} else {
+		// Private GitHub (for MW)
+		return fmt.Sprintf("%s/api/v3/repos/%s/%s/contents/%s?ref=%s", c.BaseURL, owner, repo, path, ref)
+	}
+}
+
+func (c *Config) DownloadGitHubFile(url string) ([]byte, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for %s: %v", url, err)
+	}
+
+	// Add authorization header if token is provided
+	if c.Token != "" {
+		req.Header.Set("Authorization", "token "+os.Getenv("GITHUB_TOKEN"))
+	}
+
+	// Headers needed by GH
+	req.Header.Add("Accept", "application/vnd.github.v3.raw")
+	req.Header.Set("User-Agent", "tf-diff/1.0")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download file from %s: %v", url, err)
 	}
@@ -44,4 +71,24 @@ func CreateTempFile(content []byte, filename string) (string, error) {
 	}
 
 	return tmpFile, nil
+}
+
+// NewConfig creates a new GitHub configuration
+func NewConfig(baseURL, token string) *Config {
+	return &Config{
+		BaseURL: baseURL,
+		Token:   token,
+	}
+}
+
+func NewPublicGitHubConfig(token string) *Config {
+	return NewConfig("https://github.com", token)
+}
+
+func NewPublicGitHubConfigNoAuth() *Config {
+	return NewConfig("https://github.com", "")
+}
+
+func NewEnterpriseGitHubConfig(baseURL, token string) *Config {
+	return NewConfig(baseURL, token)
 }
