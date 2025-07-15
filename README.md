@@ -37,9 +37,15 @@ set GITHUB_TOKEN=<your-pat-token-here>
 
 ## 4. Run the code!
 
-The usage for this code is: go run main.go <owner> <repo> <old_ref> <new_ref>
+The usage for this code is: 
+```go
+go run main.go <owner> <repo> <old_ref> <new_ref>
+```
 
 An example is: 
 ```go
 go run main.go development terraform-aws-<module> v1.0.0 v1.1.0
 ```
+
+## Please note
+This code only works for private MW GH repos. You need a PAT for MW Enterprise GH and be connected to VPN for use.
