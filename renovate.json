@@ -1,6 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ]
-}
+  "extends": ["config:recommended"],
+  "labels" : ["dependencies", "renovate", "go-mod"],
+  "dependencyDashboard": true,
+  "packageRules": [
+    {
+      "matchManagers" : ["gomod"],
+      "groupName": "All Go Module updates",
+      "labels": ["go-mod", "go", "dependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "commitMessagePrefix": "chore(deps:gomod):"
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDatasources": ["golang-version"],
+      "matchDepTypes": ["toolchain"],
+      "groupName": "Go Toolchain version update",
+      "labels": ["go", "go-toolchain", "dependencies"],
+      "automerge": true,
+      "commitMessagePrefix": "chore(deps:gomod:golang-version:toolchain):"
+    }
+  ]}
