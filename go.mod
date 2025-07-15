@@ -1,6 +1,6 @@
 module tf-diff
 
-go 1.21.4
+go 1.23.11
 
 require (
 	github.com/hashicorp/hcl/v2 v2.23.0
